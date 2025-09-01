@@ -1,21 +1,106 @@
-# Use postgres/example user/password credentials
-version: '3.9'
-
 services:
+  # Development API Service
+  api-dev:
+    build:
+      context: api
+      target: dev
+    volumes:
+      - ./api:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3001:5000"
+      - "9229:9229"  # For Node.js debugger
+    environment:
+      NODE_ENV: development
+      DEBUG: "prisma:*,nest:*"
+      CHOKIDAR_USEPOLLING: "true"  # Enable polling for file changes
+      CHOKIDAR_INTERVAL: 1000      # Polling interval in ms
+      WATCHPACK_POLLING: "true"    # Enable Webpack polling
+      WATCHPACK_INTERVAL: 1000     # Webpack polling interval
+      DATABASE_URL: "postgresql://admin:password1@db:5432/goji_interview"
+      NODE_OPTIONS: "--inspect=0.0.0.0:9229"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh -c "npm install && npm run start:dev"
 
+  migrate:
+    build:
+      context: api
+      target: migrate  # Use the dedicated migrate stage
+    env_file:
+      - ./api/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://admin:password1@db:5432/goji_interview"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Production API Service
+  api-prod:
+    build:
+      context: api
+      target: prod
+    ports:
+      - "3002:3000"
+    env_file:
+      - ./api/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://admin:password1@db:5432/goji_interview"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ./grocery-nextjs-app
+      dockerfile: Dockerfile
+    container_name: grocery-nextjs-app
+    env_file:
+      - ./grocery-nextjs-app/.env
+    ports:
+      - "3000:3000"
+
+  # PostgreSQL Database
   db:
-    image: postgres
+    image: postgres:13-alpine
     restart: always
     shm_size: 128mb
     environment:
+      POSTGRES_USER: admin
       POSTGRES_PASSWORD: password1
       POSTGRES_DB: goji_interview
-      POSTGRES_USER: admin
+      POSTGRES_INITDB_ARGS: "--data-checksums --auth=md5"
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d goji_interview"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

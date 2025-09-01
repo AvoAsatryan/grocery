@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -19,20 +20,51 @@ enum GroceryItemStatus {
 }
 
 model User {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email    String @unique
-  password String?
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String         @unique
+  name          String
+  shoppingLists ShoppingList[]
 
-  createdAt DateTime  @default(now()) @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @db.Timestamptz()
+  createdAt     DateTime       @default(now()) @db.Timestamptz()
+  updatedAt     DateTime       @updatedAt @db.Timestamptz()
 }
 
 model GroceryItem {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name     String
-  quantity Int?   @default(0)
-  priority Int?   @default(5)
-  status   GroceryItemStatus @default(RANOUT)
-  createdAt DateTime  @default(now()) @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @db.Timestamptz()
+  id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  quantity  Int?              @default(0)
+  priority  Int              @default(5)
+  status    GroceryItemStatus @default(RANOUT)
+  shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  shoppingListId String          @db.Uuid
+  history   GroceryItemHistory[]
+  notes     String? @db.VarChar(1000)
+  createdAt DateTime          @default(now()) @db.Timestamptz()
+  updatedAt DateTime          @updatedAt @db.Timestamptz()
+
+  @@index([shoppingListId, status])
+  @@index([shoppingListId])
+}
+
+model GroceryItemHistory {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groceryItem   GroceryItem     @relation(fields: [groceryItemId], references: [id], onDelete: Cascade)
+  groceryItemId String          @db.Uuid
+  status        GroceryItemStatus
+  changedAt     DateTime        @default(now()) @db.Timestamptz()
+
+  @@index([groceryItemId])
+}
+
+model ShoppingList {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  groceryItems  GroceryItem[]
+  createdBy     User          @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById   String        @db.Uuid
+  notes         String?       @db.VarChar(1000)
+  createdAt     DateTime      @default(now()) @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @db.Timestamptz()
+
+  @@index([createdById])
 }

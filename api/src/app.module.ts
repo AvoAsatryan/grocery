@@ -1,23 +1,34 @@
-import { Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
-import { AppController } from './app.controller'
-import { AppService } from './app.service'
-import { UserModule } from './user/user.module'
-import { PrismaModule } from './prisma/prisma.module'
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UserModule } from './user/user.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { GroceryModule } from './grocery/grocery.module';
-import config from './config'
+import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
+import { ShoppingListModule } from './shoppingList/shopping-list.module';
+import config from './config';
 
 @Module({
   imports: [
-    UserModule,
-    PrismaModule,
     ConfigModule.forRoot({
-      envFilePath: [`.env.${process.env.NODE_ENV}`, '.env', `.env.${process.env.NODE_ENV}.local`, '.env.local'],
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}`, 
+        '.env', 
+        `.env.${process.env.NODE_ENV}.local`, 
+        '.env.local'
+      ],
       isGlobal: true,
       load: [config],
     }),
+    PrismaModule,
+    UserModule,
+    AuthModule,
+    ShoppingListModule,
     GroceryModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

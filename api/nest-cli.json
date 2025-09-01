@@ -3,6 +3,15 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "watchAssets": true,
+    "webpack": true,
+    "tsConfigPath": "tsconfig.build.json"
+  },
+  "watchAssets": true,
+  "watchOptions": {
+    "usePolling": true,
+    "interval": 1000,
+    "binaryInterval": 3000
   }
 }
