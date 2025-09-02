@@ -45,7 +45,7 @@ services:
       context: api
       target: prod
     ports:
-      - "3002:3000"
+      - "3002:5000"
     env_file:
       - ./api/.env
     environment:
